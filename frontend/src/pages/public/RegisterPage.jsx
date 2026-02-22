@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { GoogleLogin } from '@react-oauth/google';
 import { motion } from 'framer-motion';
 import AuthLayout from '../../components/layout/AuthLayout';
 import Input from '../../components/common/Input';
@@ -17,15 +18,14 @@ export default function RegisterPage() {
     });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [googleLoading, setGoogleLoading] = useState(false);
 
-    const { register } = useAuth();
+    const { register, loginWithGoogle } = useAuth();
     const navigate = useNavigate();
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.id]: e.target.value });
     };
-
-
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -57,6 +57,32 @@ export default function RegisterPage() {
             setError(err.response?.data?.error || 'Failed to create account');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleGoogleSuccess = async (credentialResponse) => {
+        setError('');
+        setGoogleLoading(true);
+        try {
+            const result = await loginWithGoogle(credentialResponse.credential);
+            // Google creates account + logs in, redirect based on role
+            const userRole = result?.user?.role || result?.role;
+            switch (userRole) {
+                case 'super_admin':
+                    navigate('/admin', { replace: true });
+                    break;
+                case 'manager':
+                    navigate('/manager', { replace: true });
+                    break;
+                case 'customer':
+                default:
+                    navigate('/bookings', { replace: true });
+                    break;
+            }
+        } catch (err) {
+            setError(err.response?.data?.error || 'Google sign-up failed');
+        } finally {
+            setGoogleLoading(false);
         }
     };
 
@@ -124,7 +150,7 @@ export default function RegisterPage() {
                     variant="primary"
                     size="lg"
                     className="auth-submit-btn"
-                    disabled={loading}
+                    disabled={loading || googleLoading}
                 >
                     {loading ? (
                         <span className="btn-content">
@@ -138,6 +164,24 @@ export default function RegisterPage() {
                     )}
                 </Button>
             </form>
+
+            {/* Divider */}
+            <div className="auth-divider">
+                <span>or</span>
+            </div>
+
+            {/* Google Sign-Up */}
+            <div className="google-btn-wrapper">
+                <GoogleLogin
+                    onSuccess={handleGoogleSuccess}
+                    onError={() => setError('Google sign-up failed')}
+                    theme="filled_black"
+                    size="large"
+                    width="100%"
+                    text="signup_with"
+                    shape="pill"
+                />
+            </div>
 
             <div className="auth-footer">
                 Already have an account?{' '}

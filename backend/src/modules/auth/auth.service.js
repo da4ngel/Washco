@@ -1,5 +1,6 @@
 import argon2 from 'argon2';
 import jwt from 'jsonwebtoken';
+import { OAuth2Client } from 'google-auth-library';
 import config from '../../config/env.js';
 import * as authRepository from './auth.repository.js';
 import { generateToken, hashToken, parseDuration } from '../../utils/helpers.js';
@@ -70,6 +71,87 @@ export const login = async ({ email, password }) => {
             fullName: user.full_name,
             role: user.role,
             tenantId: user.tenant_id,
+            avatarUrl: user.avatar_url,
+        },
+        accessToken,
+        refreshToken,
+        expiresAt,
+    };
+};
+
+/**
+ * Google Sign-In: verify ID token, find or create user, return tokens
+ */
+export const googleSignIn = async ({ idToken }) => {
+    if (!config.google.clientId) {
+        throw new BadRequestError('Google Sign-In is not configured.');
+    }
+
+    // Verify the Google ID token
+    const client = new OAuth2Client(config.google.clientId);
+    let payload;
+    try {
+        const ticket = await client.verifyIdToken({
+            idToken,
+            audience: config.google.clientId,
+        });
+        payload = ticket.getPayload();
+    } catch (err) {
+        throw new UnauthorizedError('Invalid Google token.');
+    }
+
+    const { sub: googleId, email, name, picture } = payload;
+
+    if (!email) {
+        throw new BadRequestError('Google account does not have an email address.');
+    }
+
+    // 1. Check if user with this Google ID already exists
+    let user = await authRepository.findByGoogleId(googleId);
+
+    if (!user) {
+        // 2. Check if user with same email exists (link accounts)
+        user = await authRepository.findByEmail(email);
+
+        if (user) {
+            // Link Google account to existing user
+            user = await authRepository.update(user.id, {
+                googleId,
+                avatarUrl: picture || user.avatar_url,
+                isVerified: true,
+            });
+        } else {
+            // 3. Create new user
+            user = await authRepository.create({
+                email,
+                fullName: name || email.split('@')[0],
+                role: 'customer',
+                googleId,
+                avatarUrl: picture || null,
+            });
+        }
+    }
+
+    // Generate tokens
+    const accessToken = generateAccessToken({
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        tenant_id: user.tenant_id,
+    });
+    const { refreshToken, refreshTokenHash, expiresAt } = generateRefreshToken();
+
+    // Store refresh token
+    await authRepository.createRefreshToken(user.id, refreshTokenHash, expiresAt);
+
+    return {
+        user: {
+            id: user.id,
+            email: user.email,
+            fullName: user.full_name,
+            role: user.role,
+            tenantId: user.tenant_id,
+            avatarUrl: user.avatar_url,
         },
         accessToken,
         refreshToken,
@@ -154,6 +236,7 @@ export const getProfile = async (userId) => {
         role: user.role,
         tenantId: user.tenant_id,
         isVerified: user.is_verified,
+        avatarUrl: user.avatar_url,
         createdAt: user.created_at,
     };
 };
@@ -164,6 +247,30 @@ export const getProfile = async (userId) => {
 export const updateProfile = async (userId, data) => {
     const user = await authRepository.update(userId, data);
     return user;
+};
+
+/**
+ * Change user password
+ */
+export const changePassword = async (userId, currentPassword, newPassword) => {
+    const user = await authRepository.findByEmail(
+        (await authRepository.findById(userId)).email
+    );
+    if (!user) {
+        throw new BadRequestError('User not found.');
+    }
+
+    // If user has a password, verify the current one
+    if (user.password_hash) {
+        const isValid = await argon2.verify(user.password_hash, currentPassword);
+        if (!isValid) {
+            throw new UnauthorizedError('Current password is incorrect.');
+        }
+    }
+
+    const newHash = await argon2.hash(newPassword);
+    await authRepository.updatePassword(userId, newHash);
+    return { message: 'Password changed successfully.' };
 };
 
 // Helper functions
@@ -191,9 +298,11 @@ function generateRefreshToken() {
 export default {
     register,
     login,
+    googleSignIn,
     refreshAccessToken,
     logout,
     logoutAll,
     getProfile,
     updateProfile,
+    changePassword,
 };

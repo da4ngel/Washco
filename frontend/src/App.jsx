@@ -18,6 +18,9 @@ import ManagerDashboardPage from './pages/manager/ManagerDashboardPage';
 // Admin pages
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 
+// Shared pages
+import ProfilePage from './pages/shared/ProfilePage';
+
 // Redirect admins/managers away from homepage to their dashboards
 function HomeRedirect() {
     const { user, isAuthenticated } = useAuth();
@@ -42,6 +45,9 @@ export default function App() {
 
                 {/* Protected routes */}
                 <Route element={<ProtectedRoute />}>
+                    {/* Shared routes — all authenticated users */}
+                    <Route path="/profile" element={<ProfilePage />} />
+
                     {/* Customer routes */}
                     <Route element={<RoleRoute allowedRoles={['customer']} />}>
                         <Route path="/bookings" element={<CustomerBookingsPage />} />

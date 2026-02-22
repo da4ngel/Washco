@@ -61,7 +61,16 @@ export default function Header() {
                                 )}
 
                                 <div className="user-menu">
-                                    <span className="user-name">{user.fullName}</span>
+                                    <Link to="/profile" className="user-profile-link">
+                                        {user.avatarUrl ? (
+                                            <img src={user.avatarUrl} alt="" className="header-avatar" />
+                                        ) : (
+                                            <div className="header-avatar-fallback">
+                                                <User size={14} />
+                                            </div>
+                                        )}
+                                        <span className="user-name">{user.fullName}</span>
+                                    </Link>
                                     <Button
                                         variant="ghost"
                                         size="sm"

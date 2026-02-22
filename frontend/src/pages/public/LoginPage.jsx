@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { GoogleLogin } from '@react-oauth/google';
 import { motion } from 'framer-motion';
 import AuthLayout from '../../components/layout/AuthLayout';
 import Input from '../../components/common/Input';
@@ -12,12 +13,33 @@ export default function LoginPage() {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [googleLoading, setGoogleLoading] = useState(false);
 
-    const { login } = useAuth();
+    const { login, loginWithGoogle } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
 
     const from = location.state?.from?.pathname || '/';
+
+    const handleRedirect = (result) => {
+        if (from !== '/' && from !== '/login') {
+            navigate(from, { replace: true });
+            return;
+        }
+        const userRole = result?.user?.role || result?.role;
+        switch (userRole) {
+            case 'super_admin':
+                navigate('/admin', { replace: true });
+                break;
+            case 'manager':
+                navigate('/manager', { replace: true });
+                break;
+            case 'customer':
+            default:
+                navigate('/bookings', { replace: true });
+                break;
+        }
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -26,33 +48,24 @@ export default function LoginPage() {
 
         try {
             const result = await login(email, password);
-
-            // If the user came from a specific page, go there
-            // Otherwise, redirect based on role
-            if (from !== '/' && from !== '/login') {
-                navigate(from, { replace: true });
-                return;
-            }
-
-            // Default redirects based on role
-            const userRole = result?.user?.role || result?.role; // Handle potential structure differences
-
-            switch (userRole) {
-                case 'super_admin':
-                    navigate('/admin', { replace: true });
-                    break;
-                case 'manager':
-                    navigate('/manager', { replace: true });
-                    break;
-                case 'customer':
-                default:
-                    navigate('/bookings', { replace: true }); // Customer lands on their bookings or home
-                    break;
-            }
+            handleRedirect(result);
         } catch (err) {
             setError(err.response?.data?.error || 'Failed to login');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleGoogleSuccess = async (credentialResponse) => {
+        setError('');
+        setGoogleLoading(true);
+        try {
+            const result = await loginWithGoogle(credentialResponse.credential);
+            handleRedirect(result);
+        } catch (err) {
+            setError(err.response?.data?.error || 'Google sign-in failed');
+        } finally {
+            setGoogleLoading(false);
         }
     };
 
@@ -90,7 +103,6 @@ export default function LoginPage() {
                             Forgot password?
                         </Link>
                     </div>
-                    {/* Input component handles the input field itself */}
                     <Input
                         id="password"
                         type="password"
@@ -98,7 +110,7 @@ export default function LoginPage() {
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="••••••••"
                         required
-                        className="no-label-margin" // Helper to remove default label margin if needed
+                        className="no-label-margin"
                     />
                 </div>
 
@@ -107,7 +119,7 @@ export default function LoginPage() {
                     variant="primary"
                     size="lg"
                     className="auth-submit-btn"
-                    disabled={loading}
+                    disabled={loading || googleLoading}
                 >
                     {loading ? (
                         <span className="btn-content">
@@ -121,6 +133,24 @@ export default function LoginPage() {
                     )}
                 </Button>
             </form>
+
+            {/* Divider */}
+            <div className="auth-divider">
+                <span>or</span>
+            </div>
+
+            {/* Google Sign-In */}
+            <div className="google-btn-wrapper">
+                <GoogleLogin
+                    onSuccess={handleGoogleSuccess}
+                    onError={() => setError('Google sign-in failed')}
+                    theme="filled_black"
+                    size="large"
+                    width="100%"
+                    text="continue_with"
+                    shape="pill"
+                />
+            </div>
 
             <div className="auth-footer">
                 Don't have an account?{' '}

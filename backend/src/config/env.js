@@ -34,6 +34,9 @@ const envSchema = Joi.object({
   CLOUDINARY_API_KEY: Joi.string().optional(),
   CLOUDINARY_API_SECRET: Joi.string().optional(),
 
+  // Google OAuth
+  GOOGLE_CLIENT_ID: Joi.string().optional(),
+
   // Rate Limiting
   RATE_LIMIT_WINDOW_MS: Joi.number().default(900000),
   RATE_LIMIT_MAX_REQUESTS: Joi.number().default(100),
@@ -89,6 +92,10 @@ export const config = {
     cloudName: envVars.CLOUDINARY_CLOUD_NAME,
     apiKey: envVars.CLOUDINARY_API_KEY,
     apiSecret: envVars.CLOUDINARY_API_SECRET,
+  },
+
+  google: {
+    clientId: envVars.GOOGLE_CLIENT_ID,
   },
 
   rateLimit: {

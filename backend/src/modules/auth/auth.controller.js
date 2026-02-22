@@ -2,6 +2,7 @@ import * as authService from './auth.service.js';
 import { createAuditLog } from '../../utils/audit.js';
 import { getClientIp } from '../../utils/helpers.js';
 import config from '../../config/env.js';
+import { cloudinary, useCloudinary } from '../../config/cloudinary.js';
 
 /**
  * Register a new user
@@ -55,6 +56,45 @@ export const login = async (req, res, next) => {
             userId: result.user.id,
             tenantId: result.user.tenantId,
             action: 'LOGIN',
+            entityType: 'user',
+            entityId: result.user.id,
+            ipAddress: getClientIp(req),
+        });
+
+        // Set refresh token as HttpOnly cookie
+        res.cookie('refreshToken', result.refreshToken, {
+            httpOnly: true,
+            secure: config.env === 'production',
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+            path: '/api/auth',
+        });
+
+        res.json({
+            success: true,
+            data: {
+                user: result.user,
+                accessToken: result.accessToken,
+            },
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * Google Sign-In
+ */
+export const googleSignIn = async (req, res, next) => {
+    try {
+        const { idToken } = req.body;
+
+        const result = await authService.googleSignIn({ idToken });
+
+        await createAuditLog({
+            userId: result.user.id,
+            tenantId: result.user.tenantId,
+            action: 'GOOGLE_LOGIN',
             entityType: 'user',
             entityId: result.user.id,
             ipAddress: getClientIp(req),
@@ -207,12 +247,72 @@ export const updateProfile = async (req, res, next) => {
     }
 };
 
+/**
+ * Upload user avatar
+ */
+export const uploadAvatar = async (req, res, next) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ success: false, error: 'No image file provided.' });
+        }
+
+        let avatarUrl;
+
+        if (useCloudinary) {
+            const result = await new Promise((resolve, reject) => {
+                const stream = cloudinary.uploader.upload_stream(
+                    { folder: 'washco/avatars', public_id: `${req.user.id}-${Date.now()}`, resource_type: 'image' },
+                    (error, result) => {
+                        if (error) reject(error);
+                        else resolve(result);
+                    }
+                );
+                stream.end(req.file.buffer);
+            });
+            avatarUrl = result.secure_url;
+        } else {
+            avatarUrl = `/uploads/avatars/${req.file.filename}`;
+        }
+
+        await authService.updateProfile(req.user.id, { avatarUrl });
+
+        res.json({
+            success: true,
+            message: 'Avatar uploaded successfully.',
+            data: { avatarUrl },
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * Change user password
+ */
+export const changePassword = async (req, res, next) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+
+        const result = await authService.changePassword(req.user.id, currentPassword, newPassword);
+
+        res.json({
+            success: true,
+            message: result.message,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     register,
     login,
+    googleSignIn,
     refresh,
     logout,
     logoutAll,
     getProfile,
     updateProfile,
+    uploadAvatar,
+    changePassword,
 };

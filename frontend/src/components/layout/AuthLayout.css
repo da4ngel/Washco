@@ -326,4 +326,42 @@
     }
 }
 
-```
+/* Auth Divider — "or" separator */
+.auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin: 1.5rem 0;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.auth-divider span {
+    color: var(--text-tertiary, rgba(148, 163, 184, 0.6));
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Google Button Wrapper */
+.google-btn-wrapper {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+.google-btn-wrapper>div {
+    width: 100% !important;
+}
+
+.google-btn-wrapper iframe {
+    border-radius: 50px !important;
+    color-scheme: auto;
+}

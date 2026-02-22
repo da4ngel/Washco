@@ -38,3 +38,23 @@ export const updateProfile = async (updates) => {
     const { data } = await client.patch('/auth/profile', updates);
     return data.data;
 };
+
+export const uploadAvatar = async (file) => {
+    const formData = new FormData();
+    formData.append('avatar', file);
+    const { data } = await client.post('/auth/profile/avatar', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return data.data;
+};
+
+export const changePassword = async ({ currentPassword, newPassword }) => {
+    const { data } = await client.post('/auth/change-password', { currentPassword, newPassword });
+    return data;
+};
+
+export const googleLogin = async (idToken) => {
+    const { data } = await client.post('/auth/google', { idToken });
+    setToken(data.data.accessToken);
+    return data.data;
+};

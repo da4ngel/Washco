@@ -6,7 +6,7 @@ import { hashToken } from '../../utils/helpers.js';
  */
 export const findByEmail = async (email) => {
     const result = await query(
-        `SELECT id, email, password_hash, full_name, phone, role, tenant_id, is_verified, created_at
+        `SELECT id, email, password_hash, full_name, phone, role, tenant_id, is_verified, google_id, avatar_url, created_at
      FROM users WHERE email = $1`,
         [email.toLowerCase()]
     );
@@ -18,7 +18,7 @@ export const findByEmail = async (email) => {
  */
 export const findById = async (id) => {
     const result = await query(
-        `SELECT id, email, full_name, phone, role, tenant_id, is_verified, created_at
+        `SELECT id, email, full_name, phone, role, tenant_id, is_verified, google_id, avatar_url, created_at
      FROM users WHERE id = $1`,
         [id]
     );
@@ -26,14 +26,26 @@ export const findById = async (id) => {
 };
 
 /**
+ * Find user by Google ID
+ */
+export const findByGoogleId = async (googleId) => {
+    const result = await query(
+        `SELECT id, email, password_hash, full_name, phone, role, tenant_id, is_verified, google_id, avatar_url, created_at
+     FROM users WHERE google_id = $1`,
+        [googleId]
+    );
+    return result.rows[0] || null;
+};
+
+/**
  * Create a new user
  */
-export const create = async ({ email, passwordHash, fullName, phone, role, tenantId = null }) => {
+export const create = async ({ email, passwordHash = null, fullName, phone, role, tenantId = null, googleId = null, avatarUrl = null }) => {
     const result = await query(
-        `INSERT INTO users (email, password_hash, full_name, phone, role, tenant_id, is_verified)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)
-     RETURNING id, email, full_name, phone, role, tenant_id, is_verified, created_at`,
-        [email.toLowerCase(), passwordHash, fullName, phone || null, role, tenantId, role === 'super_admin']
+        `INSERT INTO users (email, password_hash, full_name, phone, role, tenant_id, is_verified, google_id, avatar_url)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+     RETURNING id, email, full_name, phone, role, tenant_id, is_verified, google_id, avatar_url, created_at`,
+        [email.toLowerCase(), passwordHash, fullName, phone || null, role, tenantId, role === 'super_admin' || !!googleId, googleId, avatarUrl]
     );
     return result.rows[0];
 };
@@ -62,13 +74,21 @@ export const update = async (id, data) => {
         fields.push(`tenant_id = $${paramCount++}`);
         values.push(data.tenantId);
     }
+    if (data.googleId !== undefined) {
+        fields.push(`google_id = $${paramCount++}`);
+        values.push(data.googleId);
+    }
+    if (data.avatarUrl !== undefined) {
+        fields.push(`avatar_url = $${paramCount++}`);
+        values.push(data.avatarUrl);
+    }
 
     if (fields.length === 0) return null;
 
     values.push(id);
     const result = await query(
         `UPDATE users SET ${fields.join(', ')} WHERE id = $${paramCount}
-     RETURNING id, email, full_name, phone, role, tenant_id, is_verified`,
+     RETURNING id, email, full_name, phone, role, tenant_id, is_verified, google_id, avatar_url`,
         values
     );
     return result.rows[0];
@@ -129,11 +149,25 @@ export const cleanupExpiredTokens = async () => {
     );
 };
 
+/**
+ * Update user password hash
+ */
+export const updatePassword = async (id, passwordHash) => {
+    const result = await query(
+        `UPDATE users SET password_hash = $1 WHERE id = $2
+     RETURNING id, email, full_name, role`,
+        [passwordHash, id]
+    );
+    return result.rows[0];
+};
+
 export default {
     findByEmail,
     findById,
+    findByGoogleId,
     create,
     update,
+    updatePassword,
     createRefreshToken,
     findRefreshToken,
     revokeRefreshToken,
