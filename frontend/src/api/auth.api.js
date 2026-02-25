@@ -1,7 +1,7 @@
 import client, { setToken, clearToken } from './client';
 
-export const login = async (email, password) => {
-    const { data } = await client.post('/auth/login', { email, password });
+export const login = async (identifier, password) => {
+    const { data } = await client.post('/auth/login', { identifier, password });
     setToken(data.data.accessToken);
     return data.data;
 };

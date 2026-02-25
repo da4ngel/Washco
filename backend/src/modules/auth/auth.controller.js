@@ -48,9 +48,9 @@ export const register = async (req, res, next) => {
  */
 export const login = async (req, res, next) => {
     try {
-        const { email, password } = req.body;
+        const { identifier, password } = req.body;
 
-        const result = await authService.login({ email, password });
+        const result = await authService.login({ identifier, password });
 
         await createAuditLog({
             userId: result.user.id,

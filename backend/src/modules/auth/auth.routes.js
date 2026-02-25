@@ -50,14 +50,14 @@ const registerSchema = Joi.object({
     email: Joi.string().email().required(),
     password: Joi.string().min(8).max(128).required(),
     fullName: Joi.string().min(2).max(100).required(),
-    phone: Joi.string().pattern(/^\+?[\d\s-]{8,20}$/).optional().messages({
+    phone: Joi.string().pattern(/^\+?[\d\s-]{8,20}$/).required().messages({
         'string.pattern.base': 'Phone number must be 8-20 digits',
     }),
     role: Joi.string().valid('customer').optional(),
 });
 
 const loginSchema = Joi.object({
-    email: Joi.string().email().required(),
+    identifier: Joi.string().required(),
     password: Joi.string().required(),
 });
 

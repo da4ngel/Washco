@@ -12,6 +12,7 @@ export default function RegisterPage() {
     const [formData, setFormData] = useState({
         name: '',
         email: '',
+        phone: '',
         password: '',
         confirmPassword: '',
         role: 'customer' // Default role
@@ -44,7 +45,7 @@ export default function RegisterPage() {
         setLoading(true);
 
         try {
-            await register(formData.name, formData.email, formData.password, formData.role);
+            await register(formData.name, formData.email, formData.password, formData.role, formData.phone);
 
             // Registration successful, redirect to login
             navigate('/login', {
@@ -76,7 +77,7 @@ export default function RegisterPage() {
                     break;
                 case 'customer':
                 default:
-                    navigate('/bookings', { replace: true });
+                    navigate('/', { replace: true });
                     break;
             }
         } catch (err) {
@@ -120,6 +121,16 @@ export default function RegisterPage() {
                         value={formData.email}
                         onChange={handleChange}
                         placeholder="name@example.com"
+                        required
+                    />
+
+                    <Input
+                        id="phone"
+                        type="tel"
+                        label="Phone Number"
+                        value={formData.phone}
+                        onChange={handleChange}
+                        placeholder="+1 234 567 8900"
                         required
                     />
 

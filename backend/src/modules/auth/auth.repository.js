@@ -38,6 +38,18 @@ export const findByGoogleId = async (googleId) => {
 };
 
 /**
+ * Find user by phone
+ */
+export const findByPhone = async (phone) => {
+    const result = await query(
+        `SELECT id, email, password_hash, full_name, phone, role, tenant_id, is_verified, google_id, avatar_url, created_at
+     FROM users WHERE phone = $1`,
+        [phone]
+    );
+    return result.rows[0] || null;
+};
+
+/**
  * Create a new user
  */
 export const create = async ({ email, passwordHash = null, fullName, phone, role, tenantId = null, googleId = null, avatarUrl = null }) => {
@@ -165,6 +177,7 @@ export default {
     findByEmail,
     findById,
     findByGoogleId,
+    findByPhone,
     create,
     update,
     updatePassword,

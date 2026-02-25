@@ -10,10 +10,18 @@ import { BadRequestError, UnauthorizedError, ConflictError } from '../../middlew
  * Register a new user
  */
 export const register = async ({ email, password, fullName, phone, role = 'customer' }) => {
-    // Check if user already exists
+    // Check if user already exists by email
     const existingUser = await authRepository.findByEmail(email);
     if (existingUser) {
         throw new ConflictError('An account with this email already exists.');
+    }
+
+    // Check if phone is already taken
+    if (phone) {
+        const existingPhone = await authRepository.findByPhone(phone);
+        if (existingPhone) {
+            throw new ConflictError('An account with this phone number already exists.');
+        }
     }
 
     // Hash password
@@ -44,11 +52,17 @@ export const register = async ({ email, password, fullName, phone, role = 'custo
 /**
  * Login user and generate tokens
  */
-export const login = async ({ email, password }) => {
-    // Find user
-    const user = await authRepository.findByEmail(email);
+export const login = async ({ identifier, password }) => {
+    // Find user by email or phone
+    const isEmail = identifier.includes('@');
+    let user;
+    if (isEmail) {
+        user = await authRepository.findByEmail(identifier);
+    } else {
+        user = await authRepository.findByPhone(identifier);
+    }
     if (!user) {
-        throw new UnauthorizedError('Invalid email or password.');
+        throw new UnauthorizedError('Invalid credentials.');
     }
 
     // Verify password

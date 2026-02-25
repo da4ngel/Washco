@@ -108,6 +108,80 @@
     text-decoration: underline;
 }
 
+/* Returning User Card */
+.returning-user-card {
+    background: var(--bg-glass);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-xl);
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.returning-user-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.returning-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--primary-500);
+}
+
+.returning-avatar-fallback {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--accent-gradient);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    flex-shrink: 0;
+}
+
+.returning-details {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.returning-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.returning-email {
+    font-size: 0.825rem;
+    color: var(--text-tertiary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.switch-account-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 0;
+    color: var(--primary-500);
+    font-weight: 600;
+}
+
+.switch-account-btn:hover {
+    text-decoration: underline;
+}
+
 @media (max-width: 960px) {
     .auth-visual {
         display: none;

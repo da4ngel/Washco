@@ -36,8 +36,8 @@ export function AuthProvider({ children }) {
         }
     };
 
-    const login = async (email, password) => {
-        const data = await apiLogin(email, password);
+    const login = async (identifier, password) => {
+        const data = await apiLogin(identifier, password);
         setUser(data.user);
         return data;
     };
@@ -48,8 +48,8 @@ export function AuthProvider({ children }) {
         return data;
     };
 
-    const register = async (name, email, password, role) => {
-        const data = await apiRegister({ fullName: name, email, password, role });
+    const register = async (name, email, password, role, phone) => {
+        const data = await apiRegister({ fullName: name, email, password, role, phone });
         return data;
     };
 
