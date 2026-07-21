@@ -48,3 +48,18 @@ export const resetPasswordSchema = z.object({
   access_token: z.string().min(1),
   password: z.string().min(8).max(72),
 });
+
+/** Phone in E.164 form, e.g. +94771234567. Used for SMS OTP sign-in. */
+export const e164Phone = z
+  .string()
+  .regex(/^\+[1-9]\d{6,14}$/, 'Enter a valid phone number in international format, e.g. +94771234567');
+
+export const phoneOtpRequestSchema = z.object({
+  phone: e164Phone,
+});
+
+export const phoneOtpVerifySchema = z.object({
+  phone: e164Phone,
+  token: z.string().regex(/^\d{6}$/, 'Enter the 6-digit code'),
+});
+export type PhoneOtpVerifyInput = z.infer<typeof phoneOtpVerifySchema>;

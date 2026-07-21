@@ -13,7 +13,7 @@ interface GenerateOptions {
   capacity?: number;
 }
 
-interface SlotRow {
+export interface SlotRow {
   tenant_id: string;
   date: string;
   start_time: string;
@@ -21,37 +21,35 @@ interface SlotRow {
   capacity: number;
 }
 
+/** Slot length = shortest active service duration on a 15m floor, else the default. */
+export const slotLengthFor = (durations: number[]): number =>
+  durations.length > 0 ? Math.max(15, Math.min(...durations)) : DEFAULT_SLOT_MINUTES;
+
 /**
- * Generates time slots for a tenant over the next N days, based on their
- * operating hours. Slot length = shortest active service duration (min 30m).
- * Skips closed days and never touches existing (booked) slots.
+ * Pure slot enumeration: given operating hours and service durations, build the
+ * slot rows for `days` days starting at `from`. No DB access — unit-testable.
  */
-export const generateSlots = async ({ tenantId, days = 30, capacity = 1 }: GenerateOptions): Promise<number> => {
-  const [{ data: hours }, { data: services }] = await Promise.all([
-    supabaseAdmin.from('operating_hours').select('*').eq('tenant_id', tenantId),
-    supabaseAdmin.from('services').select('duration_minutes').eq('tenant_id', tenantId).eq('is_active', true),
-  ]);
-
-  const operatingHours = (hours ?? []) as OperatingHour[];
-  if (operatingHours.length === 0) {
-    logger.warn(`No operating hours for tenant ${tenantId}; cannot generate slots.`);
-    return 0;
-  }
-
-  // Slot length = shortest active service duration, rounded to a sensible grid.
-  const durations = (services ?? []).map((s: Pick<Service, 'duration_minutes'>) => s.duration_minutes);
-  const slotMinutes = durations.length > 0 ? Math.max(15, Math.min(...durations)) : DEFAULT_SLOT_MINUTES;
+export const buildSlotRows = (params: {
+  tenantId: string;
+  operatingHours: OperatingHour[];
+  durations: number[];
+  days: number;
+  capacity: number;
+  from: Date;
+}): SlotRow[] => {
+  const { tenantId, operatingHours, durations, days, capacity, from } = params;
+  const slotMinutes = slotLengthFor(durations);
 
   const byDay = new Map<string, OperatingHour>();
   for (const h of operatingHours) byDay.set(h.day_of_week, h);
 
-  const rows: SlotRow[] = [];
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const start = new Date(from);
+  start.setHours(0, 0, 0, 0);
 
+  const rows: SlotRow[] = [];
   for (let d = 0; d < days; d++) {
-    const date = new Date(today);
-    date.setDate(today.getDate() + d);
+    const date = new Date(start);
+    date.setDate(start.getDate() + d);
     const dayName = DAYS_OF_WEEK[date.getDay()];
     const hours = byDay.get(dayName);
     if (!hours || hours.is_closed) continue;
@@ -70,6 +68,35 @@ export const generateSlots = async ({ tenantId, days = 30, capacity = 1 }: Gener
       });
     }
   }
+  return rows;
+};
+
+/**
+ * Generates time slots for a tenant over the next N days, based on their
+ * operating hours. Slot length = shortest active service duration (min 30m).
+ * Skips closed days and never touches existing (booked) slots.
+ */
+export const generateSlots = async ({ tenantId, days = 30, capacity = 1 }: GenerateOptions): Promise<number> => {
+  const [{ data: hours }, { data: services }] = await Promise.all([
+    supabaseAdmin.from('operating_hours').select('*').eq('tenant_id', tenantId),
+    supabaseAdmin.from('services').select('duration_minutes').eq('tenant_id', tenantId).eq('is_active', true),
+  ]);
+
+  const operatingHours = (hours ?? []) as OperatingHour[];
+  if (operatingHours.length === 0) {
+    logger.warn(`No operating hours for tenant ${tenantId}; cannot generate slots.`);
+    return 0;
+  }
+
+  const durations = (services ?? []).map((s: Pick<Service, 'duration_minutes'>) => s.duration_minutes);
+  const rows = buildSlotRows({
+    tenantId,
+    operatingHours,
+    durations,
+    days,
+    capacity,
+    from: new Date(),
+  });
 
   if (rows.length === 0) return 0;
 
@@ -84,7 +111,7 @@ export const generateSlots = async ({ tenantId, days = 30, capacity = 1 }: Gener
     throw error;
   }
 
-  logger.info(`Generated up to ${rows.length} slots for tenant ${tenantId} (${slotMinutes}m each).`);
+  logger.info(`Generated up to ${rows.length} slots for tenant ${tenantId} (${slotLengthFor(durations)}m each).`);
   return rows.length;
 };
 
