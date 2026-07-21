@@ -179,6 +179,7 @@ export const cancelBooking = asyncHandler(async (req: Request, res: Response) =>
       body: `Your booking ${booking.booking_ref} was cancelled.${paymentStatus === 'refunded' ? ' A refund has been issued.' : ''}`,
       type: 'booking_cancelled',
       data: { booking_id: booking.id },
+      email: true,
     });
   }
 

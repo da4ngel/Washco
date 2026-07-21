@@ -1,0 +1,44 @@
+# Render blueprint for the WashCo backend API.
+# Deploy: Render Dashboard -> New -> Blueprint -> point at this repo.
+# The frontend is deployed separately on Vercel (see frontend/vercel.json).
+services:
+  - type: web
+    name: washco-api
+    runtime: node
+    plan: free
+    # Build the whole workspace so the backend's tsc build resolves shared deps.
+    buildCommand: npm ci && npm run build:backend
+    startCommand: npm run start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Set to the deployed Vercel URL(s), comma-separated (no trailing slash).
+      - key: CORS_ORIGIN
+        sync: false
+      # --- Supabase (required to boot in production) ---
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      # --- SMTP (transactional email; optional — no-ops if unset) ---
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      # --- Stripe (payments; wire up later) ---
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false

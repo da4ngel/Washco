@@ -35,8 +35,17 @@ export const env = {
   supabaseAnonKey: required('SUPABASE_ANON_KEY'),
   supabaseServiceRoleKey: required('SUPABASE_SERVICE_ROLE_KEY'),
 
-  stripeSecretKey: required('STRIPE_SECRET_KEY'),
-  stripeWebhookSecret: required('STRIPE_WEBHOOK_SECRET'),
+  // Stripe and SMTP are optional: the app runs in placeholder mode without them
+  // (guarded at call sites via isConfigured), so a missing value must not crash
+  // the server on boot — even in production.
+  stripeSecretKey: process.env.STRIPE_SECRET_KEY ?? '',
+  stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET ?? '',
+
+  smtpHost: process.env.SMTP_HOST ?? '',
+  smtpPort: Number(process.env.SMTP_PORT ?? 587),
+  smtpUser: process.env.SMTP_USER ?? '',
+  smtpPass: process.env.SMTP_PASS ?? '',
+  emailFrom: process.env.EMAIL_FROM ?? 'WashCo <no-reply@washco.lk>',
 
   jwtSecret: process.env.JWT_SECRET ?? '',
 } as const;
@@ -45,4 +54,5 @@ export const isProduction = env.nodeEnv === 'production';
 export const isConfigured = {
   supabase: Boolean(env.supabaseUrl && env.supabaseServiceRoleKey),
   stripe: Boolean(env.stripeSecretKey),
+  email: Boolean(env.smtpHost && env.smtpUser),
 };

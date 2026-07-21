@@ -59,13 +59,14 @@ export const handlePaymentIntentSucceeded = async (intent: Stripe.PaymentIntent)
     () => undefined // RPC is optional; ignore if not present
   );
 
-  // Notify the customer.
+  // Notify the customer (in-app + email).
   await createNotification({
     userId: booking.user_id,
     title: 'Booking confirmed',
     body: `Your booking ${booking.booking_ref} is confirmed and paid.`,
     type: 'booking_confirmed',
     data: { booking_id: booking.id, booking_ref: booking.booking_ref },
+    email: true,
   });
 
   // Notify the tenant owner.
@@ -82,6 +83,7 @@ export const handlePaymentIntentSucceeded = async (intent: Stripe.PaymentIntent)
       body: `You have a new booking ${booking.booking_ref}.`,
       type: 'new_booking',
       data: { booking_id: booking.id, booking_ref: booking.booking_ref },
+      email: true,
     });
   }
 

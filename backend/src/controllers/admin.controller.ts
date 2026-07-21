@@ -111,6 +111,7 @@ export const approveTenant = asyncHandler(async (req: Request, res: Response) =>
     body: `${tenant.business_name} is now live on WashCo.`,
     type: 'tenant_approved',
     data: { tenant_id: tenant.id },
+    email: true,
   });
   res.json({ tenant });
 });
@@ -125,6 +126,7 @@ export const rejectTenant = asyncHandler(async (req: Request, res: Response) => 
     body: reason ? `Reason: ${reason}` : 'Your application was not approved.',
     type: 'tenant_rejected',
     data: { tenant_id: tenant.id },
+    email: true,
   });
   res.json({ tenant });
 });
@@ -138,6 +140,7 @@ export const suspendTenant = asyncHandler(async (req: Request, res: Response) =>
     body: 'Your business has been suspended. Please contact support.',
     type: 'tenant_suspended',
     data: { tenant_id: tenant.id },
+    email: true,
   });
   res.json({ tenant });
 });
