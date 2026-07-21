@@ -1,0 +1,23 @@
+{
+  "name": "washco",
+  "version": "1.0.0",
+  "private": true,
+  "description": "WashCo — production-ready car wash marketplace (Colombo, Sri Lanka)",
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "dev:backend": "npm run dev --workspace backend",
+    "dev:frontend": "npm run dev --workspace frontend",
+    "build": "npm run build --workspace backend && npm run build --workspace frontend",
+    "build:backend": "npm run build --workspace backend",
+    "build:frontend": "npm run build --workspace frontend",
+    "typecheck": "npm run typecheck --workspace backend && npm run typecheck --workspace frontend",
+    "start": "npm run start --workspace backend"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
