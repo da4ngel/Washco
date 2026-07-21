@@ -86,7 +86,22 @@ Other scripts:
 ```bash
 npm run build          # typecheck + build both apps
 npm run typecheck      # tsc --noEmit for both apps
+npm test               # run backend + frontend unit tests (Vitest)
 ```
+
+---
+
+## Testing & CI
+
+Unit tests run with **Vitest** in both workspaces (no live Supabase/Stripe needed):
+
+```bash
+npm test                          # both workspaces
+npm run test --workspace backend  # backend only (pricing, slot logic, schemas, helpers)
+npm run test --workspace frontend # frontend only (auth store, routing, formatters, a component)
+```
+
+GitHub Actions (`.github/workflows/ci.yml`) runs `typecheck → test → build` on every push and PR to `main`.
 
 ---
 
@@ -114,6 +129,62 @@ With real Supabase + Stripe keys and `stripe listen` running:
 5. Log in as the tenant owner → **Bookings** → confirm → mark in-progress → upload before/after photos → complete.
 6. Back as the customer → leave a review on the completed booking.
 7. Log in as admin → approve the pending tenant, view revenue.
+
+---
+
+## Additional sign-in methods
+
+Alongside email/password, WashCo supports **Google OAuth** and **phone (SMS) OTP**. Both are
+handled by Supabase Auth on the client — a new `auth.users` row automatically gets a `profiles`
+row (via the `on_auth_user_created` trigger), defaulting to the `user` role. Each needs a one-time
+provider setup in external dashboards:
+
+### Google OAuth
+
+1. **Google Cloud Console** → APIs & Services → Credentials → *Create OAuth client ID* (type: Web).
+   - Authorized redirect URI: `https://<your-project-ref>.supabase.co/auth/v1/callback`
+2. **Supabase** → Authentication → Providers → **Google** → enable, paste the Client ID + Secret.
+3. Add your site URL and `…/auth/callback` to Supabase → Authentication → URL Configuration
+   (Redirect URLs). The app redirects to `/auth/callback` after consent.
+
+The "Continue with Google" button appears on the login and register pages.
+
+### Phone OTP (SMS)
+
+1. **Supabase** → Authentication → Providers → **Phone** → enable and connect an SMS provider
+   (Twilio, MessageBird, or Vonage — this requires a **paid** SMS account).
+2. Users pick the **Phone** tab on the login page, enter a number in E.164 format
+   (e.g. `+94771234567`), and verify the 6-digit code.
+
+### Transactional email (SMTP)
+
+Notifications are stored in-app **and** emailed for key events (booking confirmed, new booking,
+tenant approved/rejected, cancellation/refund). Set `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`,
+`SMTP_PASS`, `EMAIL_FROM` in `backend/.env` (works with Gmail app passwords, Amazon SES, Mailgun,
+Postmark, …). **If SMTP is unset, email silently no-ops** and only the in-app notification fires.
+
+---
+
+## Deployment (Render + Vercel)
+
+The API and frontend deploy independently.
+
+### Backend → Render
+
+- `render.yaml` (repo root) defines a `web` service: build `npm ci && npm run build:backend`,
+  start `npm run start`, health check `/api/health`.
+- In the Render dashboard, set the env vars marked `sync: false`: `SUPABASE_URL`,
+  `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `JWT_SECRET`, and `CORS_ORIGIN`
+  (your Vercel URL). SMTP and Stripe vars are optional (the app boots without them).
+
+### Frontend → Vercel
+
+- `frontend/vercel.json` sets the Vite build + SPA rewrite (so `/wash/:slug`, `/auth/callback`,
+  etc. resolve on refresh). Set the project root to `frontend/`.
+- Set the `VITE_*` env vars in Vercel; point `VITE_API_URL` at the Render API URL.
+
+After both are live, set the backend `CORS_ORIGIN` to the Vercel domain and add that domain +
+`…/auth/callback` to Supabase's redirect allowlist.
 
 ---
 

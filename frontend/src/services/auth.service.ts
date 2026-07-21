@@ -38,3 +38,31 @@ export async function registerTenant(form: TenantRegisterForm): Promise<void> {
 export async function sendPasswordReset(email: string): Promise<void> {
   await api.post('/auth/forgot-password', { email });
 }
+
+/**
+ * Starts Google OAuth. Supabase redirects to Google, then back to
+ * `/auth/callback`, where AuthCallbackPage resolves the session.
+ * Requires the Google provider to be enabled in the Supabase dashboard.
+ */
+export async function signInWithGoogle(): Promise<void> {
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: `${window.location.origin}/auth/callback` },
+  });
+  if (error) throw error;
+}
+
+/**
+ * Sends a one-time SMS code to a phone number (E.164, e.g. +94771234567).
+ * Requires a Phone/SMS provider configured in the Supabase dashboard.
+ */
+export async function sendPhoneOtp(phone: string): Promise<void> {
+  const { error } = await supabase.auth.signInWithOtp({ phone });
+  if (error) throw error;
+}
+
+/** Verifies the SMS code and establishes a session. */
+export async function verifyPhoneOtp(phone: string, token: string): Promise<void> {
+  const { error } = await supabase.auth.verifyOtp({ phone, token, type: 'sms' });
+  if (error) throw error;
+}

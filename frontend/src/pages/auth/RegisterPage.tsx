@@ -8,6 +8,7 @@ import { AuthLayout } from '@/components/layout/AuthLayout';
 import { Field } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { GoogleAuthButton, AuthDivider } from '@/components/auth/GoogleAuthButton';
 import { registerSchema, RegisterForm } from '@/schemas/auth.schema';
 import { registerCustomer } from '@/services/auth.service';
 import { getApiErrorMessage } from '@/services/api';
@@ -51,6 +52,8 @@ export function RegisterPage() {
         </>
       }
     >
+      <GoogleAuthButton label="Sign up with Google" />
+      <AuthDivider />
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
         <Field label="Full name" htmlFor="full_name" error={errors.full_name?.message}>
           <Input id="full_name" autoComplete="name" placeholder="Kasun Silva" {...register('full_name')} />

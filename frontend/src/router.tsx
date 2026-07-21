@@ -6,6 +6,7 @@ import { LoginPage } from '@/pages/auth/LoginPage';
 import { RegisterPage } from '@/pages/auth/RegisterPage';
 import { TenantRegisterPage } from '@/pages/auth/TenantRegisterPage';
 import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage';
+import { AuthCallbackPage } from '@/pages/auth/AuthCallbackPage';
 import { SearchPage } from '@/pages/user/SearchPage';
 import { TenantDetailPage } from '@/pages/user/TenantDetailPage';
 import { BookingPage } from '@/pages/user/BookingPage';
@@ -38,6 +39,7 @@ export const router = createBrowserRouter([
   { path: '/register', element: <RegisterPage /> },
   { path: '/register/tenant', element: <TenantRegisterPage /> },
   { path: '/forgot-password', element: <ForgotPasswordPage /> },
+  { path: '/auth/callback', element: <AuthCallbackPage /> },
 
   // Public / customer-facing
   {
